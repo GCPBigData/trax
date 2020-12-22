@@ -1008,7 +1008,18 @@ def generic_text_dataset_preprocess_fn(dataset,
 
   # Tokenize the inputs and targets.
   dataset = t5.data.preprocessors.tokenize(
-      dataset, output_features, copy_plaintext=copy_plaintext)
+      dataset, output_features, copy_pretokenized=copy_plaintext)
+  if copy_plaintext:
+    # T5 now uses the '_pretokenized' suffix, but trax uses '_plaintext'.
+    def _rename(inputs):
+      outputs = {}
+      for k, v in inputs.items():
+        if k.endswith('_pretokenized'):
+          k = k[:-len('pretokenized')] + 'plaintext'
+        outputs[k] = v
+      return outputs
+    dataset = dataset.map(
+        _rename, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
   # Apply the token-preprocessors.
   if token_preprocess_fns is not None:
